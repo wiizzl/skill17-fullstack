@@ -1,11 +1,23 @@
-FROM oven/bun:latest AS build-stage
+FROM oven/bun:alpine AS base
+
+FROM base AS deps
 WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN bun install
 RUN bun run build
 
-EXPOSE 80
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 ENV PORT=80
-ENV HOSTNAME="0.0.0.0"
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-CMD ["bun", "--bun", ".next/standalone/server.js"]
+EXPOSE 80
+CMD ["bun", "run", "server.js"]
