@@ -9,6 +9,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN bun run db:generate && bun run db:push
 RUN bun run build
 
 FROM base AS runner
